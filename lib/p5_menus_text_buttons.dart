@@ -1,3 +1,5 @@
+import 'dart:ffi';
+
 import 'package:async/async.dart';
 
 import 'package:asteroid_escape/operations.dart';
@@ -15,10 +17,14 @@ import 'dart:math' as math;
 bool _DebugMode = true;
 bool _GamePause = false;
 bool _Inmortal = true;
+bool _LightOn = true;
 
 double _ScreenWidth = 0;
 double _ScreenHeight = 0;
 double _AccelerometerTilt = 0;
+
+int rockets = 5;
+int maxRockets = 5;
 
 class Test_Menus2 extends FlameGame with HasCollisionDetection, HasTappables {
 //LIB
@@ -26,6 +32,7 @@ class Test_Menus2 extends FlameGame with HasCollisionDetection, HasTappables {
   math.Random randomY = math.Random();
 
   Timer meteorTimer = Timer(1, repeat: true);
+  Timer RearmTime = Timer(5, repeat: false);
 
   TextPaint textPaint = TextPaint(
       style: const TextStyle(
@@ -70,6 +77,9 @@ class Test_Menus2 extends FlameGame with HasCollisionDetection, HasTappables {
     var menu1 = await images.load("menu1.png");
     var menu2 = await images.load("menu2.png");
 
+    var buttonOn = await images.load("btnOFF.png");
+    var buttonOff = await images.load("btnON.png");
+
     var missile = await images.load("missile.png");
 
     //STREAM
@@ -79,23 +89,12 @@ class Test_Menus2 extends FlameGame with HasCollisionDetection, HasTappables {
       //print(event);
       _AccelerometerTilt = event.x;
     });
-    //ITEMS
-    //LOAD ONCE!
     ScreenHitboxControll s = ScreenHitboxControll();
     add(s);
-    //Decoration
-    add(background
-      ..sprite = await loadSprite("background.jpg")
-      ..size = size);
 
-    buttonLight
-      ..sprite = await loadSprite("TraceRed.png")
-      ..priority = 101
-      ..anchor = Anchor.topLeft
-      ..x = 21
-      ..y = 46.5
-      ..size = Vector2(35, 35);
-    add(buttonLight);
+    ///////////////////////////
+    ///      FIXED GUI      ///
+    ///////////////////////////
     pauseButton
       ..sprite = await loadSprite("pauseButtonHolder.png")
       ..priority = 100
@@ -103,6 +102,7 @@ class Test_Menus2 extends FlameGame with HasCollisionDetection, HasTappables {
       ..x = 0
       ..y = 28
       ..size = Vector2(200, 70);
+
     add(pauseButton);
     topbar
       ..sprite = await loadSprite("topDecoration.png")
@@ -120,6 +120,40 @@ class Test_Menus2 extends FlameGame with HasCollisionDetection, HasTappables {
       ..y = 0
       ..size = Vector2(_ScreenWidth, 30);
     add(notif);
+
+    ///////////////////////////
+    ///   TOGGLE BY EVENT   ///
+    ///////////////////////////
+    add(background
+      ..sprite = await loadSprite("background.jpg")
+      ..size = size);
+    //event ---------------------------------------------------------------add event make class on tap if bn lit events
+    add(buttonLight);
+    buttonLight
+      ..sprite = await loadSprite("btnON.png")
+      ..priority = 101
+      ..anchor = Anchor.topLeft
+      ..x = 21
+      ..y = 46.5
+      ..size = Vector2(35, 35);
+
+    ///////////////////////////
+    ///      MENUS          ///
+    ///////////////////////////
+
+    //create list of menu items  tigger a hide() method to dissapear, method to remove all items  of type??
+
+    //GAME PAUSE MENU
+
+    //MAIN MENU
+
+    //SCOREOARD
+
+    //SETTINGS
+
+    ///////////////////////////
+    ///   GAME ITEMS        ///----------------------------------ADD CLEAR CONFITIONAL IN GAME TO TERMINATE AL GAME OBJECTS (METEOR MISSILE, ASTEROID TRACER)
+    ///////////////////////////
 
     Spaceship spaceship = Spaceship(await loadSprite("Ship.png"));
     add(spaceship);
@@ -140,6 +174,8 @@ class Test_Menus2 extends FlameGame with HasCollisionDetection, HasTappables {
         add(asteroid2);
       }
     };
+    //Event based
+    //MISSILE-------------------------------------------event
   }
 
   //update
@@ -153,6 +189,7 @@ class Test_Menus2 extends FlameGame with HasCollisionDetection, HasTappables {
   /*
     @override
   void render(Canvas canvas) {}*/
+
 }
 
 //classes
@@ -180,7 +217,7 @@ class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
     debugMode = _DebugMode;
   }
   Future<void> onLoad() async {
-    add(CircleHitbox(radius: size[0] / 2 - size[0] / 10));
+    add(CircleHitbox()); //radius: size[0] / 2 - size[0] / 10   <<NO PRIORITY
   }
 
   @override
@@ -212,7 +249,7 @@ class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
   @override
   bool onTapDown(TapDownInfo info) {
     try {
-      print("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+      print("fire!");
       return true;
     } catch (error) {
       return false;
@@ -284,6 +321,15 @@ class Missile extends SpriteComponent with CollisionCallbacks {
   }
 }
 //PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE//
+//
+
+//arm1
+//arm2
+//arm scoreboard
+
+//animated sprites cover (3..2..1.0 para el jeugo) app logo para menu y lanzar
+
+//tracer
 
 //Men
 //

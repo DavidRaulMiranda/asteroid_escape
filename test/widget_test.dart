@@ -14,6 +14,7 @@ import 'package:asteroid_escape/main.dart';
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
+    // ignore: prefer_const_constructors
     await tester.pumpWidget(GameWidget());
 
     // Verify that our counter starts at 0.
