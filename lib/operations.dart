@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:flame/components.dart';
+
 class operations {
   static int RandomIntVal(int min, int max) {
     Random random = Random();
@@ -16,5 +18,10 @@ class operations {
     int num = RandomIntVal(0, asteroidTextures.length);
     print(num);
     return asteroidTextures[num];
+  }
+
+  static Vector2 RandomSquareDimm(double min, double max) {
+    double dimm = RandomDouble(min, max);
+    return Vector2(dimm, dimm);
   }
 }
