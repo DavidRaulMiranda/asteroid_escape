@@ -263,7 +263,7 @@ class Missile extends SpriteComponent with CollisionCallbacks {
     }
   }
 }
-//Button pause
+//PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE//
 
 //Men
 //
