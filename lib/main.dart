@@ -2,6 +2,7 @@
 import 'package:asteroid_escape/p1test_addSprite.dart';
 import 'package:asteroid_escape/p2_test_move_acceleromeer.dart';
 import 'package:asteroid_escape/p5_menus_text_buttons.dart';
+import 'package:asteroid_escape/p6_b_hastappables.dart';
 import 'p3_test_spawn.dart';
 import 'p4_test_colision.dart';
 //
@@ -13,7 +14,7 @@ import 'game_compo.dart';
 import '_sprites_compo.dart';
 
 void main() {
-  final myGame = Test_Menus2();
+  final myGame = Game_Hastappables();
   runApp(
     GameWidget(
       game: myGame,

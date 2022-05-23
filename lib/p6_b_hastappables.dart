@@ -26,7 +26,11 @@ double _AccelerometerTilt = 0;
 int rockets = 5;
 int maxRockets = 5;
 
-class Test_Menus2 extends FlameGame with HasCollisionDetection, TapDetector {
+//events
+TriggerAcction fireMissile = TriggerAcction();
+
+class Game_Hastappables extends FlameGame
+    with HasCollisionDetection, HasTappables {
   //HasTappables
   //HasTappables
 //LIB
@@ -35,7 +39,6 @@ class Test_Menus2 extends FlameGame with HasCollisionDetection, TapDetector {
 
   Timer meteorTimer = Timer(1, repeat: true);
   Timer RearmTime = Timer(5, repeat: false);
-  TriggerAcction fireMissile = TriggerAcction();
 
   TextPaint textPaint = TextPaint(
       style: const TextStyle(
@@ -195,13 +198,6 @@ class Test_Menus2 extends FlameGame with HasCollisionDetection, TapDetector {
     //  moveShip(dt, ship, screenWidth, _GlovalTilt);
   }
 
-  //on tap
-  @override
-  void onTapUp(TapUpInfo info) {
-    print("bbbbbbbbbbbbbbbbbbbb");
-    fireMissile.CallAction();
-  }
-
   /*
     @override
   void render(Canvas canvas) {}*/
@@ -222,7 +218,7 @@ class ScreenHitboxControll extends ScreenHitbox {
 }
 
 //SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP//
-class Spaceship extends SpriteComponent with CollisionCallbacks {
+class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
   //Tappable
   Spaceship(Sprite img) {
     this.sprite = img;
@@ -262,18 +258,17 @@ class Spaceship extends SpriteComponent with CollisionCallbacks {
       _GamePause = true;
     } else if (other is Asteroid) {}
   }
-/*
+
   @override
   bool onTapDown(TapDownInfo info) {
     try {
-      Missile m =   Missile(await loadSprite("Ship.png"), 50, 50);
-      Spaceship spaceship = Spaceship();
-      add()
+      print("fire");
+      fireMissile.CallAction();
       return true;
     } catch (error) {
       return false;
     }
-  }*/
+  }
 }
 
 //ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID//
@@ -398,4 +393,3 @@ class TriggerAcction {
     _running = true;
   }
 }
-//

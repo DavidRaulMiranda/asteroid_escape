@@ -398,4 +398,3 @@ class TriggerAcction {
     _running = true;
   }
 }
-//
