@@ -9,11 +9,15 @@ import 'p4_test_colision.dart';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 
 import 'game_compo.dart';
 import '_sprites_compo.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations(
+      [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
   final myGame = Game_Hastappables();
   runApp(
     GameWidget(

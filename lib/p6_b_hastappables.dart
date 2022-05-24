@@ -16,6 +16,7 @@ import 'dart:math' as math;
 
 bool _DebugMode = true;
 bool _GamePause = false;
+bool _GameOver = false;
 bool _Inmortal = true;
 bool _LightOn = true;
 
@@ -23,22 +24,23 @@ double _ScreenWidth = 0;
 double _ScreenHeight = 0;
 double _AccelerometerTilt = 0;
 
-int rockets = 5;
-int maxRockets = 5;
+int distance = 0;
+int numMiss = 5;
+int maxNumMiss = 5;
 
 //events
+
+TriggerAcction explosion = TriggerAcction();
+TriggerAcction startGame = TriggerAcction();
+TriggerAcction exitApp = TriggerAcction();
+
+TriggerAcction pauseGame = TriggerAcction();
+TriggerAcction gameOver = TriggerAcction();
 TriggerAcction fireMissile = TriggerAcction();
 
 class Game_Hastappables extends FlameGame
     with HasCollisionDetection, HasTappables {
-  //HasTappables
-  //HasTappables
-//LIB
-  math.Random randomX = math.Random();
-  math.Random randomY = math.Random();
-
   Timer meteorTimer = Timer(1, repeat: true);
-  Timer RearmTime = Timer(5, repeat: false);
 
   TextPaint textPaint = TextPaint(
       style: const TextStyle(
@@ -48,9 +50,17 @@ class Game_Hastappables extends FlameGame
 //ASSET
   SpriteComponent topbar = SpriteComponent();
   SpriteComponent notif = SpriteComponent();
-  SpriteComponent pauseButton = SpriteComponent();
+  SpriteComponent pauseButtonHolder = SpriteComponent();
   SpriteComponent buttonLight = SpriteComponent();
   SpriteComponent background = SpriteComponent();
+  SpriteComponent missileIcon = SpriteComponent();
+  SpriteComponent missLed1 = SpriteComponent();
+  SpriteComponent missLed2 = SpriteComponent();
+  SpriteComponent missLed3 = SpriteComponent();
+  SpriteComponent missLed4 = SpriteComponent();
+  SpriteComponent missLed5 = SpriteComponent();
+  SpriteComponent missLed6 = SpriteComponent();
+  SpriteComponent menuBackgrond = SpriteComponent();
 
   double setSize = 100;
   double popSpeed = 1;
@@ -86,10 +96,13 @@ class Game_Hastappables extends FlameGame
     var buttonOn = await images.load("btnOFF.png");
     var buttonOff = await images.load("btnON.png");
 
+    //ICONS
     var missile = await images.load("missile.png");
+    var exit = await images.load("missile.png");
+    var quit = await images.load("missile.png");
 
     //STREAM
-    meteorTimer.start();
+
     accelerometerEvents.listen((AccelerometerEvent event) {
       //<unsubscribe on close, set global values to default on close/exit
       //print(event);
@@ -101,15 +114,14 @@ class Game_Hastappables extends FlameGame
     ///////////////////////////
     ///      FIXED GUI      ///
     ///////////////////////////
-    pauseButton
+    pauseButtonHolder
       ..sprite = await loadSprite("pauseButtonHolder.png")
       ..priority = 100
       ..anchor = Anchor.topLeft
       ..x = 0
       ..y = 28
       ..size = Vector2(200, 70);
-
-    add(pauseButton);
+    add(pauseButtonHolder);
     topbar
       ..sprite = await loadSprite("topDecoration.png")
       ..priority = 99
@@ -126,85 +138,234 @@ class Game_Hastappables extends FlameGame
       ..y = 0
       ..size = Vector2(_ScreenWidth, 30);
     add(notif);
+    // missileIcon
+    //   ..sprite = await loadSprite("iconMissile.png")
+    //   ..priority = 200
+    //   ..anchor = Anchor.topLeft
+    //   ..x = _ScreenWidth / 3
+    //   ..y = 35
+    //   ..size = Vector2(10, 10);
+    // add(missileIcon);
+    missLed1
+      ..sprite = await loadSprite("btnON.png")
+      ..priority = 200
+      ..anchor = Anchor.topLeft
+      ..x = _ScreenWidth / 2.5
+      ..y = 35
+      ..size = Vector2(10, 10);
+    add(missLed1);
+    missLed2
+      ..sprite = await loadSprite("btnON.png")
+      ..priority = 200
+      ..anchor = Anchor.topLeft
+      ..x = _ScreenWidth / 2.5 + 10
+      ..y = 35
+      ..size = Vector2(10, 10);
+    add(missLed2);
+    missLed3
+      ..sprite = await loadSprite("btnON.png")
+      ..priority = 200
+      ..anchor = Anchor.topLeft
+      ..x = _ScreenWidth / 2.5 + 20
+      ..y = 35
+      ..size = Vector2(10, 10);
+    add(missLed3);
+    missLed4
+      ..sprite = await loadSprite("btnON.png")
+      ..priority = 200
+      ..anchor = Anchor.topLeft
+      ..x = _ScreenWidth / 2.5 + 30
+      ..y = 35
+      ..size = Vector2(10, 10);
+    add(missLed4);
+    missLed5
+      ..sprite = await loadSprite("btnON.png")
+      ..priority = 200
+      ..anchor = Anchor.topLeft
+      ..x = _ScreenWidth / 2.5 + 40
+      ..y = 35
+      ..size = Vector2(10, 10);
+    add(missLed5);
 
     ///////////////////////////
     ///   TOGGLE BY EVENT   ///
     ///////////////////////////
     add(background
       ..sprite = await loadSprite("background.jpg")
-      ..size = size);
+      ..size = size
+      ..priority = 10);
     //event ---------------------------------------------------------------add event make class on tap if bn lit events
-    add(buttonLight);
-    buttonLight
+    add(buttonLight
       ..sprite = await loadSprite("btnON.png")
       ..priority = 101
       ..anchor = Anchor.topLeft
       ..x = 21
       ..y = 46.5
-      ..size = Vector2(35, 35);
+      ..size = Vector2(35, 35));
 
-    ///////////////////////////
-    ///      MENUS          ///
-    ///////////////////////////
+    PauseGameButton pauseButton =
+        PauseGameButton(await loadSprite("pause.png"));
+    add(pauseButton);
 
-    //create list of menu items  tigger a hide() method to dissapear, method to remove all items  of type??
+    MenuOptionARMR arm =
+        MenuOptionARMR(await loadSprite("menu1.png"), _ScreenHeight / 2.5);
 
-    //GAME PAUSE MENU
+    MenuOptionARML arm2 =
+        MenuOptionARML(await loadSprite("menu1.png"), _ScreenHeight / 1.7);
+    arm2.flipHorizontallyAroundCenter();
 
-    //MAIN MENU
+    MenuOptionARMR arm3 =
+        MenuOptionARMR(await loadSprite("menu1.png"), _ScreenHeight / 1.3);
 
-    //SCOREOARD
-
-    //SETTINGS
-
-    ///////////////////////////
-    ///   GAME ITEMS        ///----------------------------------ADD CLEAR CONFITIONAL IN GAME TO TERMINATE AL GAME OBJECTS (METEOR MISSILE, ASTEROID TRACER)
-    ///////////////////////////
+    add(menuBackgrond
+      ..sprite = await loadSprite("background.jpg")
+      ..size = size
+      ..priority = 10);
+    add(arm);
+    add(arm2);
+    add(arm3);
 
     Spaceship spaceship = Spaceship(await loadSprite("Ship.png"));
     add(spaceship);
-    /*
-    Spaceship spaceship =
-        Spaceship(Sprite(images.fromCache("Asteroid1.png"))); //Ship.png
-    add(spaceship);*/
-    /* Spaceship spaceship2 = Spaceship(await loadSprite("Target.png"));
-    add(spaceship2);*/
-
-    //PERIODIC
-    //METEORITE
+    meteorTimer.start();
     meteorTimer.onTick = () async {
       if (!_GamePause) {
         setSize = operations.RandomDouble(20, 80);
-        Asteroid asteroid2 = Asteroid(
+        Asteroid asteroid = Asteroid(
             Sprite(images.fromCache(StackAsteroid.SendToLast())), setSize);
-        add(asteroid2);
+        add(asteroid);
       }
     };
-    //Event based
-    //MISSILE-------------------------------------------event
     fireMissile.trigger = () async {
-      print("vvvvvvvvvvvvvvvvvvvv");
+      Missile missile =
+          Missile(await loadSprite("missile.png"), spaceship.x, spaceship.y);
+      add(missile);
+
+      missileLed(false);
+
+      gameOver.trigger = () async {
+        if (_GameOver) {
+          _GameOver = true;
+          CleanGame();
+        }
+      };
     };
-    Missile m = Missile(await loadSprite("Ship.png"), 50, 50);
-    add(m);
   }
 
   //update
   @override
   void update(double dt) {
     super.update(dt);
-    meteorTimer.update(dt);
-
-    //  moveShip(dt, ship, screenWidth, _GlovalTilt);
+    if (!_GamePause || !_GameOver) {
+      meteorTimer.update(dt);
+    }
   }
 
-  /*
-    @override
-  void render(Canvas canvas) {}*/
+  void missileLed(bool encender) {
+    Sprite s;
+    if (encender) {
+      s = Sprite(images.fromCache("btnON.png"));
+      numMiss += 1;
+    } else {
+      s = Sprite(images.fromCache("btnOFF.png"));
+      Future.delayed(Duration(seconds: 15), () {
+        missileLed(true);
+      });
+    }
 
+    switch (numMiss) {
+      case 6:
+        missLed6.sprite = s;
+        break;
+      case 5:
+        missLed5.sprite = s;
+        break;
+      case 4:
+        missLed4.sprite = s;
+        break;
+      case 3:
+        missLed3.sprite = s;
+        break;
+      case 2:
+        missLed2.sprite = s;
+        break;
+      case 1:
+        missLed1.sprite = s;
+        break;
+      default:
+    }
+    if (!encender) {
+      numMiss -= 1;
+    }
+  }
+
+  void CleanGame() {
+    for (Component item in this.children.toList()) {
+      print(item.runtimeType);
+    }
+    _GameOver = false;
+    _GamePause = true;
+  }
+
+  void _PauseGame() {
+    _GamePause = true;
+  }
+
+  void RestartGame() {}
+  void DrawPauseMenu() {}
+  void DrawDefeatmenu() {}
+  void DrawMenu() {}
 }
 
 //classes
+class MenuOptionARMR extends SpriteComponent with Tappable {
+  MenuOptionARMR(Sprite img, double spawnPosY) {
+    this.sprite = img;
+    size = Vector2(700, 170);
+    priority = 0;
+    anchor = Anchor.center;
+    x = -20;
+    y = spawnPosY;
+  }
+}
+
+class MenuOptionARML extends SpriteComponent with Tappable {
+  MenuOptionARML(Sprite img, double spawnPosY) {
+    this.sprite = img;
+    size = Vector2(700, 170);
+    priority = 0;
+    anchor = Anchor.center;
+    x = _ScreenWidth + 20;
+    y = spawnPosY;
+  }
+}
+
+class PauseGameButton extends SpriteComponent with Tappable {
+  PauseGameButton(Sprite img) {
+    this.sprite = img;
+    size = Vector2(35, 35);
+    priority = 2;
+    anchor = Anchor.topLeft;
+    x = 21.5;
+    y = 47.5;
+    setAlpha(100);
+  }
+
+  @override
+  bool onTapDown(TapDownInfo info) {
+    try {
+      if (numMiss > 0 && !_GameOver && !_GamePause) {
+        _GamePause = true;
+        pauseGame.CallAction();
+      }
+      return true;
+    } catch (error) {
+      print("pause unable");
+      return false;
+    }
+  }
+}
+
 class ScreenHitboxControll extends ScreenHitbox {
   @override
   void onCollisionEnd(PositionComponent other) {
@@ -230,14 +391,17 @@ class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
     debugMode = _DebugMode;
   }
   Future<void> onLoad() async {
-    add(CircleHitbox()); //radius: size[0] / 2 - size[0] / 10   <<NO PRIORITY
+    add(CircleHitbox(
+        radius: hitboxRedux.CalculaRadi(this.size, 0.7),
+        position: hitboxRedux.HitboxPosition(this.size,
+            0.7))); //radius: size[0] / 2 - size[0] / 10   <<NO PRIORITY
   }
 
   @override
   void update(double dt) {
     super.update(dt);
 
-    if (!_GamePause) {
+    if (!_GamePause && !_GameOver) {
       double shipWidth = this.size[0];
       double posX = this.x;
       double newPosX;
@@ -255,7 +419,8 @@ class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
   void onCollision(Set<Vector2> points, PositionComponent other) {
     super.onCollision(points, other);
     if (other is Asteroid) {
-      _GamePause = true;
+      gameOver.CallAction();
+      _GameOver = true;
     } else if (other is Asteroid) {}
   }
 
@@ -263,9 +428,13 @@ class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
   bool onTapDown(TapDownInfo info) {
     try {
       print("fire");
-      fireMissile.CallAction();
+      if (numMiss > 0 && !_GameOver && !_GamePause) {
+        fireMissile.CallAction();
+      } else {}
+
       return true;
     } catch (error) {
+      print("fire unable");
       return false;
     }
   }
@@ -283,13 +452,15 @@ class Asteroid extends SpriteComponent with CollisionCallbacks {
     debugMode = _DebugMode;
   }
   Future<void> onLoad() async {
-    add(CircleHitbox());
+    add(CircleHitbox(
+        radius: hitboxRedux.CalculaRadi(this.size, 0.8),
+        position: hitboxRedux.HitboxPosition(this.size, 0.7)));
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    if (!_GamePause) {
+    if (!_GamePause && !_GameOver) {
       this.y += 300 * dt / (this.size[0] / 10);
     }
   }
@@ -308,21 +479,23 @@ class Missile extends SpriteComponent with CollisionCallbacks {
   Missile(Sprite sprite, double spawnPosX, double spawnPosY) {
     this.sprite = sprite;
     priority = 51;
-    size = Vector2(75, 75);
+    size = Vector2(10, 50);
     anchor = Anchor.center;
     x = spawnPosX;
     y = spawnPosY;
     debugMode = _DebugMode;
   }
   Future<void> onLoad() async {
-    add(CircleHitbox());
+    add(CircleHitbox(
+        radius: hitboxRedux.CalculaRadi(this.size, 1.5),
+        position: hitboxRedux.HitboxPosition(this.size, 1.5)));
   }
 
   @override
   void update(double dt) {
     super.update(dt);
-    if (!_GamePause) {
-      this.y += -10 * dt;
+    if (!_GamePause && !_GameOver) {
+      this.y += -100 * dt;
     }
   }
 
@@ -331,25 +504,37 @@ class Missile extends SpriteComponent with CollisionCallbacks {
     super.onCollision(points, other);
     if (other is Asteroid) {
       other.removeFromParent();
+      this.removeFromParent();
     }
   }
 }
 
-//explosion
 //PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE//
-//
+class PauseGame extends SpriteComponent with Tappable {
+  PauseGame(Sprite sprite) {
+    this.sprite = sprite;
+    priority = 150;
+    size = Vector2(20, 20);
+    anchor = Anchor.center;
+    x = 30;
+    y = 30;
+  }
+  @override
+  bool onTapDown(TapDownInfo info) {
+    try {
+      print(pauseGame);
+      if (pauseGame.isRunning()) {
+        pauseGame.CallAction();
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+}
 
-//arm1
-//arm2
-//arm scoreboard
+class MenuOpt1 extends SpriteComponent with Tappable {}
 
-//animated sprites cover (3..2..1.0 para el jeugo) app logo para menu y lanzar
-
-//tracer
-
-//Men
-//
-///other
 class Stack<E> {
   final _list = <E>[];
 
@@ -391,5 +576,37 @@ class TriggerAcction {
 
   void Start() {
     _running = true;
+  }
+}
+
+class TriggerAcctionPosition {
+  Function(Vector2)? trigger;
+  bool _running;
+  TriggerAcctionPosition({this.trigger, bool autoStart = true})
+      : _running = autoStart;
+  void CallActionAt(Vector2 vector) {
+    if (_running) {
+      trigger?.call(vector);
+    }
+  }
+
+  bool isRunning() => _running;
+  void Stop() {
+    _running = false;
+  }
+
+  void Start() {
+    _running = true;
+  }
+}
+
+class hitboxRedux {
+  static double CalculaRadi(Vector2 dimm, double ratio) {
+    return dimm[0] / 2 * ratio;
+  }
+
+  static Vector2 HitboxPosition(Vector2 dimm, double ratio) {
+    double dispalce = dimm[0] / 2 - CalculaRadi(dimm, ratio);
+    return Vector2(dispalce, dispalce);
   }
 }
