@@ -11,12 +11,13 @@ import 'package:flame/geometry.dart';
 import 'package:flame/game.dart';
 import 'package:flame/input.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
 
-bool _DebugMode = true;
+bool _DebugMode = false;
 bool _GamePause = false;
-bool _GameOver = false;
+bool _GameOver = true;
 bool _Inmortal = true;
 bool _LightOn = true;
 
@@ -27,12 +28,14 @@ double _AccelerometerTilt = 0;
 int distance = 0;
 int numMiss = 5;
 int maxNumMiss = 5;
+double difficulty = 1;
+int Score = 0;
 
 //events
 
-TriggerAcction explosion = TriggerAcction();
-TriggerAcction startGame = TriggerAcction();
-TriggerAcction exitApp = TriggerAcction();
+TriggerAcction pressedPlay = TriggerAcction();
+TriggerAcction pressedRestart = TriggerAcction();
+TriggerAcction pressedContinue = TriggerAcction();
 
 TriggerAcction pauseGame = TriggerAcction();
 TriggerAcction gameOver = TriggerAcction();
@@ -41,6 +44,9 @@ TriggerAcction fireMissile = TriggerAcction();
 class Game_Hastappables extends FlameGame
     with HasCollisionDetection, HasTappables {
   Timer meteorTimer = Timer(1, repeat: true);
+  Timer tracerTimer = Timer(0.5, repeat: true);
+  Timer smallTracer = Timer(difficulty, repeat: true);
+  Timer DiffUp = Timer(30, repeat: true);
 
   TextPaint textPaint = TextPaint(
       style: const TextStyle(
@@ -71,7 +77,7 @@ class Game_Hastappables extends FlameGame
   Future<void> onLoad() async {
     super.onLoad();
     //GETVAR //setvar
-    _GamePause = false;
+
     _ScreenWidth = size[0];
     _ScreenHeight = size[1];
     //PREPARE COMPONENTS
@@ -207,34 +213,104 @@ class Game_Hastappables extends FlameGame
         PauseGameButton(await loadSprite("pause.png"));
     add(pauseButton);
 
-    MenuOptionARMR arm =
-        MenuOptionARMR(await loadSprite("menu1.png"), _ScreenHeight / 2.5);
+    MenuOptExit optExit = MenuOptExit(await loadSprite("menu1s.png"));
+    MenuOptPlay optPlay = MenuOptPlay(await loadSprite("menu1s.png"));
+    MenuOptRestart optRestart = MenuOptRestart(await loadSprite("menu1s.png"));
+    MenuOptContinue optContinue =
+        MenuOptContinue(await loadSprite("menu1s.png"));
+    optRestart.priority = 0;
+    optContinue.priority = 0;
 
-    MenuOptionARML arm2 =
-        MenuOptionARML(await loadSprite("menu1.png"), _ScreenHeight / 1.7);
-    arm2.flipHorizontallyAroundCenter();
-
-    MenuOptionARMR arm3 =
-        MenuOptionARMR(await loadSprite("menu1.png"), _ScreenHeight / 1.3);
-
-    add(menuBackgrond
-      ..sprite = await loadSprite("background.jpg")
-      ..size = size
-      ..priority = 10);
-    add(arm);
-    add(arm2);
-    add(arm3);
+    optPlay.flipHorizontallyAroundCenter();
+    optRestart.flipHorizontallyAroundCenter();
+    add(optExit);
+    add(optPlay);
+    add(optRestart);
+    add(optContinue);
 
     Spaceship spaceship = Spaceship(await loadSprite("Ship.png"));
     add(spaceship);
     meteorTimer.start();
+    meteorTimer.pause();
+    DiffUp.start();
+    DiffUp.pause();
+
+    //GAME MENU EVENTS
+    pressedPlay.trigger = () async {
+      meteorTimer.resume();
+      DiffUp.resume();
+      optExit.priority = 0;
+      optPlay.priority = 0;
+      _GameOver = false;
+    };
+    pressedRestart.trigger = () async {
+      print("restart");
+      CleanGame();
+      meteorTimer.resume();
+      tracerTimer.resume();
+      smallTracer.resume();
+      DiffUp.resume();
+      optRestart.priority = 0;
+      optContinue.priority = 0;
+      optExit.priority = 0;
+      _GamePause = false;
+    };
+    pressedContinue.trigger = () async {
+      print("Continue");
+      meteorTimer.resume();
+      DiffUp.resume();
+      tracerTimer.resume();
+      smallTracer.resume();
+      optRestart.priority = 0;
+      optContinue.priority = 0;
+      optExit.priority = 0;
+      _GamePause = false;
+    };
+
+    //GAME STOP EVENTS
+    gameOver.trigger = () async {
+      print("Clean &&  main menu");
+      meteorTimer.pause();
+      DiffUp.pause();
+      CleanGame();
+      optExit.priority = 100;
+      optPlay.priority = 100;
+    };
+    pauseGame.trigger = () async {
+      print("pauseGame");
+      meteorTimer.pause();
+      tracerTimer.pause();
+      smallTracer.pause();
+      DiffUp.pause();
+      //show armas
+      optExit.priority = 100;
+      optRestart.priority = 100;
+      optContinue.priority = 100;
+    };
+    tracerTimer.onTick = () async {
+      setSize = operations.RandomDouble(60, 100);
+      Tracer tracer =
+          Tracer(Sprite(images.fromCache("TraceWhite.png")), setSize);
+      add(tracer);
+    };
+    smallTracer.onTick = () async {
+      TracerPoint tracer =
+          TracerPoint(Sprite(images.fromCache("TraceWhite.png")));
+      add(tracer);
+    };
+    //GAME EVENTS
+    DiffUp.onTick = () async {
+      difficulty += 10;
+    };
+
     meteorTimer.onTick = () async {
-      if (!_GamePause) {
-        setSize = operations.RandomDouble(20, 80);
-        Asteroid asteroid = Asteroid(
-            Sprite(images.fromCache(StackAsteroid.SendToLast())), setSize);
-        add(asteroid);
-      }
+      print("GenMeteor");
+      Score += 1;
+
+      setSize = operations.RandomDouble(20, 80);
+      Asteroid asteroid = Asteroid(
+          Sprite(images.fromCache(StackAsteroid.SendToLast())), setSize);
+      add(asteroid);
     };
     fireMissile.trigger = () async {
       Missile missile =
@@ -242,13 +318,6 @@ class Game_Hastappables extends FlameGame
       add(missile);
 
       missileLed(false);
-
-      gameOver.trigger = () async {
-        if (_GameOver) {
-          _GameOver = true;
-          CleanGame();
-        }
-      };
     };
   }
 
@@ -256,9 +325,10 @@ class Game_Hastappables extends FlameGame
   @override
   void update(double dt) {
     super.update(dt);
-    if (!_GamePause || !_GameOver) {
-      meteorTimer.update(dt);
-    }
+    tracerTimer.update(dt);
+    meteorTimer.update(dt);
+    smallTracer.update(dt);
+    DiffUp.update(dt);
   }
 
   void missileLed(bool encender) {
@@ -302,41 +372,112 @@ class Game_Hastappables extends FlameGame
   void CleanGame() {
     for (Component item in this.children.toList()) {
       print(item.runtimeType);
+      if (item.runtimeType == Asteroid) {
+        item.removeFromParent();
+      } else if (item.runtimeType == Missile) {
+        item.removeFromParent();
+      }
     }
-    _GameOver = false;
-    _GamePause = true;
   }
-
-  void _PauseGame() {
-    _GamePause = true;
-  }
-
-  void RestartGame() {}
-  void DrawPauseMenu() {}
-  void DrawDefeatmenu() {}
-  void DrawMenu() {}
 }
 
 //classes
-class MenuOptionARMR extends SpriteComponent with Tappable {
-  MenuOptionARMR(Sprite img, double spawnPosY) {
+class MenuOptExit extends SpriteComponent with Tappable {
+  MenuOptExit(Sprite img) {
     this.sprite = img;
     size = Vector2(700, 170);
-    priority = 0;
-    anchor = Anchor.center;
-    x = -20;
-    y = spawnPosY;
+    anchor = Anchor.centerRight;
+    setAlpha(200);
+    priority = 300;
+    x = _ScreenWidth - 10;
+    y = _ScreenHeight / 2.5;
+  }
+  @override
+  bool onTapDown(TapDownInfo info) {
+    try {
+      if (_GamePause || _GameOver) {
+        print("exit");
+        // SystemNavigator.pop();
+      }
+      print("no exit");
+      return true;
+    } catch (error) {
+      print("pause unable");
+      return false;
+    }
   }
 }
 
-class MenuOptionARML extends SpriteComponent with Tappable {
-  MenuOptionARML(Sprite img, double spawnPosY) {
+class MenuOptPlay extends SpriteComponent with Tappable {
+  MenuOptPlay(Sprite img) {
     this.sprite = img;
     size = Vector2(700, 170);
-    priority = 0;
-    anchor = Anchor.center;
-    x = _ScreenWidth + 20;
-    y = spawnPosY;
+    anchor = Anchor.centerLeft;
+    priority = 300;
+    x = 10;
+    y = _ScreenHeight / 1.7;
+  }
+
+  @override
+  bool onTapDown(TapDownInfo info) {
+    try {
+      if (_GameOver) {
+        print("start");
+        pressedPlay.CallAction();
+      }
+      return true;
+    } catch (error) {
+      print("pause unable");
+      return false;
+    }
+  }
+}
+
+class MenuOptRestart extends SpriteComponent with Tappable {
+  MenuOptRestart(Sprite img) {
+    this.sprite = img;
+    size = Vector2(700, 170);
+    anchor = Anchor.centerLeft;
+    priority = 300;
+    x = 10;
+    y = _ScreenHeight / 1.7;
+  }
+  @override
+  bool onTapDown(TapDownInfo info) {
+    try {
+      if (_GamePause) {
+        print("restart");
+        pressedRestart.CallAction();
+      }
+      return true;
+    } catch (error) {
+      print("pause unable");
+      return false;
+    }
+  }
+}
+
+class MenuOptContinue extends SpriteComponent with Tappable {
+  MenuOptContinue(Sprite img) {
+    this.sprite = img;
+    size = Vector2(700, 170);
+    anchor = Anchor.centerRight;
+    priority = 300;
+    x = _ScreenWidth - 10;
+    y = _ScreenHeight / 1.3;
+  }
+  @override
+  bool onTapDown(TapDownInfo info) {
+    try {
+      if (_GamePause) {
+        print("continue2");
+        pressedContinue.CallAction();
+      }
+      return true;
+    } catch (error) {
+      print("pause unable");
+      return false;
+    }
   }
 }
 
@@ -344,7 +485,7 @@ class PauseGameButton extends SpriteComponent with Tappable {
   PauseGameButton(Sprite img) {
     this.sprite = img;
     size = Vector2(35, 35);
-    priority = 2;
+    priority = 200;
     anchor = Anchor.topLeft;
     x = 21.5;
     y = 47.5;
@@ -354,7 +495,7 @@ class PauseGameButton extends SpriteComponent with Tappable {
   @override
   bool onTapDown(TapDownInfo info) {
     try {
-      if (numMiss > 0 && !_GameOver && !_GamePause) {
+      if (!_GameOver && !_GamePause) {
         _GamePause = true;
         pauseGame.CallAction();
       }
@@ -372,7 +513,11 @@ class ScreenHitboxControll extends ScreenHitbox {
     if (other is Asteroid &&
         (other.y > _ScreenHeight || other.x < 0 || other.x > _ScreenWidth)) {
       other.removeFromParent();
-    } else if (other is Missile && other.y < 0) {
+    } else if (other is Missile) {
+      other.removeFromParent();
+    } else if (other is Tracer && other.y > _ScreenHeight) {
+      other.removeFromParent();
+    } else if (other is TracerPoint) {
       other.removeFromParent();
     }
   }
@@ -401,7 +546,7 @@ class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
   void update(double dt) {
     super.update(dt);
 
-    if (!_GamePause && !_GameOver) {
+    if (!_GamePause) {
       double shipWidth = this.size[0];
       double posX = this.x;
       double newPosX;
@@ -436,6 +581,52 @@ class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
     } catch (error) {
       print("fire unable");
       return false;
+    }
+  }
+}
+
+class TracerPoint extends SpriteComponent with CollisionCallbacks {
+  TracerPoint(Sprite sprite) {
+    this.sprite = sprite;
+    priority = 20;
+    setAlpha(200);
+    anchor = Anchor.center;
+    size = Vector2(2, 2);
+    x = operations.RandomDouble(0, _ScreenWidth);
+    y = 30;
+  }
+  Future<void> onLoad() async {
+    add(RectangleHitbox());
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!_GamePause) {
+      this.y += dt * 50;
+    }
+  }
+}
+
+class Tracer extends SpriteComponent with CollisionCallbacks {
+  Tracer(Sprite sprite, double setSize) {
+    this.sprite = sprite;
+    priority = 20;
+    setAlpha(120);
+    anchor = Anchor.center;
+    size = Vector2(2, setSize);
+    x = operations.RandomDouble(0, _ScreenWidth);
+    y = -2 * setSize;
+  }
+  Future<void> onLoad() async {
+    add(RectangleHitbox());
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!_GamePause) {
+      this.y += dt * math.pow(this.size[1], 2) / 3;
     }
   }
 }
@@ -479,7 +670,7 @@ class Missile extends SpriteComponent with CollisionCallbacks {
   Missile(Sprite sprite, double spawnPosX, double spawnPosY) {
     this.sprite = sprite;
     priority = 51;
-    size = Vector2(10, 50);
+    size = Vector2(20, 50);
     anchor = Anchor.center;
     x = spawnPosX;
     y = spawnPosY;
@@ -495,7 +686,7 @@ class Missile extends SpriteComponent with CollisionCallbacks {
   void update(double dt) {
     super.update(dt);
     if (!_GamePause && !_GameOver) {
-      this.y += -100 * dt;
+      this.y += -200 * dt;
     }
   }
 
@@ -510,11 +701,12 @@ class Missile extends SpriteComponent with CollisionCallbacks {
 }
 
 //PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE//
+/*
 class PauseGame extends SpriteComponent with Tappable {
   PauseGame(Sprite sprite) {
     this.sprite = sprite;
     priority = 150;
-    size = Vector2(20, 20);
+    size = Vector2(100, 20);
     anchor = Anchor.center;
     x = 30;
     y = 30;
@@ -522,16 +714,14 @@ class PauseGame extends SpriteComponent with Tappable {
   @override
   bool onTapDown(TapDownInfo info) {
     try {
-      print(pauseGame);
-      if (pauseGame.isRunning()) {
-        pauseGame.CallAction();
-      }
+      pauseGame.CallAction();
+
       return true;
     } catch (error) {
       return false;
     }
   }
-}
+}*/
 
 class MenuOpt1 extends SpriteComponent with Tappable {}
 
