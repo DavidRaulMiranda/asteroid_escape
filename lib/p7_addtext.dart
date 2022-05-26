@@ -1,4 +1,5 @@
 import 'dart:ffi';
+import 'dart:io';
 
 import 'package:asteroid_escape/audio_compo.dart';
 import 'package:async/async.dart';
@@ -17,7 +18,7 @@ import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
 
-bool _DebugMode = true;
+bool _DebugMode = false;
 bool _GamePause = false;
 bool _GameOver = true;
 bool _Inmortal = true;
@@ -36,6 +37,7 @@ int Score = 0;
 int missileReloadTime = 20;
 
 //events
+TriggerAcction exitApp = TriggerAcction();
 
 TriggerAcction pressedPlay = TriggerAcction();
 TriggerAcction pressedRestart = TriggerAcction();
@@ -82,6 +84,8 @@ class p7_addtext extends FlameGame with HasCollisionDetection, HasTappables {
     super.onLoad();
     //GETVAR //setvar
     AudioPlayerComponent.PreloadTracks();
+    AudioPlayerComponent.initBackgroundMusic();
+    AudioPlayerComponent.bgmMenu();
     _ScreenWidth = size[0];
     _ScreenHeight = size[1];
     //PREPARE COMPONENTS
@@ -295,7 +299,7 @@ class p7_addtext extends FlameGame with HasCollisionDetection, HasTappables {
     add(lblRestart);
     add(lblContinue);
     Spaceship spaceship = Spaceship(await loadSprite("Ship.png"));
-    add(spaceship);
+    //add(spaceship);
 
     meteorTimer.start();
     meteorTimer.pause();
@@ -313,6 +317,7 @@ class p7_addtext extends FlameGame with HasCollisionDetection, HasTappables {
       lblExit.priority = 0;
       difficultyMod = 0;
       Score = 0;
+      add(spaceship);
       _GameOver = false;
     };
     pressedRestart.trigger = () async {
@@ -355,7 +360,6 @@ class p7_addtext extends FlameGame with HasCollisionDetection, HasTappables {
       print("Clean &&  main menu");
       meteorTimer.pause();
       ScorreTicker.pause();
-
       DiffUp.pause();
       CleanGame();
       scoreLabel.text = "".padLeft(10, '0');
@@ -379,6 +383,9 @@ class p7_addtext extends FlameGame with HasCollisionDetection, HasTappables {
       lblRestart.priority = 200;
       lblContinue.priority = 200;
     };
+    exitApp.trigger = () async {
+      SystemChannels.platform.invokeMethod<void>('SystemNavigator.pop');
+    };
     tracerTimer.onTick = () async {
       setSize = operations.RandomDouble(30, 60);
       Tracer tracer =
@@ -393,7 +400,7 @@ class p7_addtext extends FlameGame with HasCollisionDetection, HasTappables {
     //GAME EVENTS
     DiffUp.onTick = () async {
       if (difficultyMod <= 2) {
-        difficultyMod += 1;
+        //  difficultyMod += 1;
       }
 
       if (_DebugMode) {
@@ -477,10 +484,14 @@ class p7_addtext extends FlameGame with HasCollisionDetection, HasTappables {
   void CleanGame() {
     for (Component item in this.children.toList()) {
       print(item.runtimeType);
-      if (item.runtimeType == Asteroid) {
-        item.removeFromParent();
-      } else if (item.runtimeType == Missile) {
-        item.removeFromParent();
+      try {
+        if (item.runtimeType == Asteroid) {
+          item.removeFromParent();
+        } else if (item.runtimeType == Missile) {
+          item.removeFromParent();
+        }
+      } catch (e) {
+        print("aaaaaaaaaaaaaaaaaaaaaa");
       }
     }
   }
@@ -493,7 +504,6 @@ class MenuOptExit extends SpriteComponent with Tappable {
     this.sprite = img;
     size = Vector2(700, 170);
     anchor = Anchor.centerRight;
-    setAlpha(200);
     priority = 300;
     x = _ScreenWidth - 10;
     y = _ScreenHeight / 2.5;
@@ -502,8 +512,11 @@ class MenuOptExit extends SpriteComponent with Tappable {
   bool onTapDown(TapDownInfo info) {
     try {
       if (_GamePause || _GameOver) {
+        AudioPlayerComponent.menu();
         print("exit");
-        // SystemNavigator.pop();
+        //SystemChannels.platform.invokeMethod<void>('SystemNavigator.pop');
+        //SystemNavigator.pop();
+        exit(0);
       }
       print("no exit");
       return true;
@@ -519,7 +532,7 @@ class MenuOptPlay extends SpriteComponent with Tappable {
     this.sprite = img;
     size = Vector2(700, 170);
     anchor = Anchor.centerLeft;
-    priority = 300;
+    priority = 310;
     x = 10;
     y = _ScreenHeight / 1.7;
   }
@@ -528,6 +541,8 @@ class MenuOptPlay extends SpriteComponent with Tappable {
   bool onTapDown(TapDownInfo info) {
     try {
       if (_GameOver) {
+        AudioPlayerComponent.menu();
+        AudioPlayerComponent.bgmCombat1();
         print("start");
         pressedPlay.CallAction();
       }
@@ -544,16 +559,23 @@ class MenuOptRestart extends SpriteComponent with Tappable {
     this.sprite = img;
     size = Vector2(700, 170);
     anchor = Anchor.centerLeft;
-    priority = 300;
+    priority = 310;
     x = 10;
     y = _ScreenHeight / 1.7;
   }
   @override
   bool onTapDown(TapDownInfo info) {
     try {
+      print("restart");
       if (_GamePause) {
-        print("restart");
-        pressedRestart.CallAction();
+        AudioPlayerComponent.menu();
+        AudioPlayerComponent.bgmCombat1();
+
+        if (pressedRestart._running) {
+          pressedRestart.CallAction();
+        } else {
+          AudioPlayerComponent.error();
+        }
       }
       return true;
     } catch (error) {
@@ -576,6 +598,8 @@ class MenuOptContinue extends SpriteComponent with Tappable {
   bool onTapDown(TapDownInfo info) {
     try {
       if (_GamePause) {
+        AudioPlayerComponent.menu();
+        AudioPlayerComponent.bgmCombat2();
         print("continue2");
         pressedContinue.CallAction();
       }
@@ -602,8 +626,12 @@ class PauseGameButton extends SpriteComponent with Tappable {
   bool onTapDown(TapDownInfo info) {
     try {
       if (!_GameOver && !_GamePause) {
+        AudioPlayerComponent.menu();
+        AudioPlayerComponent.bgmPause();
         _GamePause = true;
         pauseGame.CallAction();
+      } else {
+        AudioPlayerComponent.error();
       }
       return true;
     } catch (error) {
@@ -679,6 +707,8 @@ class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
       AudioPlayerComponent.large_explosion();
       gameOver.CallAction();
       _GameOver = true;
+      AudioPlayerComponent.bgmMenu();
+      this.removeFromParent();
     } else if (other is Asteroid) {}
   }
 
@@ -687,6 +717,7 @@ class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
     try {
       print("fire");
       if (numMiss > 0 && !_GameOver && !_GamePause) {
+        AudioPlayerComponent.missileLaunch();
         fireMissile.CallAction();
       } else {}
 
