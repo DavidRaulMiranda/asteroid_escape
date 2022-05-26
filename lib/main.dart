@@ -3,6 +3,7 @@ import 'package:asteroid_escape/p1test_addSprite.dart';
 import 'package:asteroid_escape/p2_test_move_acceleromeer.dart';
 import 'package:asteroid_escape/p5_menus_text_buttons.dart';
 import 'package:asteroid_escape/p6_b_hastappables.dart';
+import 'package:asteroid_escape/p7_addtext.dart';
 import 'p3_test_spawn.dart';
 import 'p4_test_colision.dart';
 //
@@ -18,7 +19,7 @@ void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations(
       [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown]);
-  final myGame = Game_Hastappables();
+  final myGame = p7_addtext();
   runApp(
     GameWidget(
       game: myGame,
