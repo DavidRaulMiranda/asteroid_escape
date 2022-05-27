@@ -48,7 +48,7 @@ TriggerAcction gameOver = TriggerAcction();
 TriggerAcction fireMissile = TriggerAcction();
 
 class p7_addtext extends FlameGame with HasCollisionDetection, HasTappables {
-  Timer meteorTimer = Timer(1, repeat: true);
+  Timer meteorTimer = Timer(0.7, repeat: true);
   Timer tracerTimer = Timer(0.3, repeat: true);
   Timer smallTracer = Timer(0.7, repeat: true);
   Timer DiffUp = Timer(100, repeat: true);
