@@ -1,10 +1,6 @@
 import 'dart:ffi';
 import 'dart:io';
-
-import 'package:asteroid_escape/lib_audio.dart';
 import 'package:async/async.dart';
-
-import 'package:asteroid_escape/operations.dart';
 import 'package:flame/collisions.dart';
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
@@ -17,6 +13,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
+//local
+import 'package:asteroid_escape/lib_audio.dart';
+import 'package:asteroid_escape/lib_Random.dart';
+import 'package:asteroid_escape/lib_hitbox.dart';
+import 'package:asteroid_escape/lib_event.dart';
 
 //GAME VARIABLES
 bool _DebugMode = false;
@@ -43,7 +44,6 @@ int missileReloadTime = 20;
 TriggerAcction pressedPlay = TriggerAcction();
 TriggerAcction pressedRestart = TriggerAcction();
 TriggerAcction pressedContinue = TriggerAcction();
-TriggerAcction exitApp = TriggerAcction();
 //GAME EVENTS
 TriggerAcction pauseGame = TriggerAcction();
 TriggerAcction gameOver = TriggerAcction();
@@ -51,18 +51,19 @@ TriggerAcction fireMissile = TriggerAcction();
 
 class AsteroidEvadeGame extends FlameGame
     with HasCollisionDetection, HasTappables {
+  //DECALRE TIMERS
   Timer meteorTimer = Timer(0.7, repeat: true);
   Timer tracerTimer = Timer(0.3, repeat: true);
   Timer smallTracer = Timer(0.7, repeat: true);
   Timer DiffUp = Timer(100, repeat: true);
   Timer ScorreTicker = Timer(0.1, repeat: true);
-
+  //TEXT FONT
   TextPaint textPaint = TextPaint(
       style: const TextStyle(
           fontSize: 30,
           color: Color.fromARGB(1, 0, 130, 0))); //EurostyleExt , fontFamily:''
 
-//ASSET
+  //ASSET define
   SpriteComponent topbar = SpriteComponent();
   SpriteComponent notif = SpriteComponent();
   SpriteComponent pauseButtonHolder = SpriteComponent();
@@ -80,18 +81,17 @@ class AsteroidEvadeGame extends FlameGame
   double setSize = 100;
   double popSpeed = 1;
 
-  double screenWidth = 0;
-  double screenHeight = 0;
   @override
   Future<void> onLoad() async {
     super.onLoad();
-    //GETVAR //setvar
+    //preload audio compo
     AudioPlayerComponent.PreloadTracks();
     AudioPlayerComponent.initBackgroundMusic();
     AudioPlayerComponent.bgmMenu();
     _ScreenWidth = size[0];
     _ScreenHeight = size[1];
     //PREPARE COMPONENTS
+    //preload images
     final StackAsteroid = Stack<String>();
     var asteroid1 = await images.load("Asteroid1.png");
     var asteroid2 = await images.load("Asteroid2.png");
@@ -119,19 +119,18 @@ class AsteroidEvadeGame extends FlameGame
     var quit = await images.load("missile.png");
 
     //STREAM
-
+    //read the accelerometer to move the ship
     accelerometerEvents.listen((AccelerometerEvent event) {
       //<unsubscribe on close, set global values to default on close/exit
       //print(event);
       _AccelerometerTilt = event.x;
       _AccelerometerTiltY = event.y;
     });
+    //hitbox on screen perimeter to destoy obj once the leave screen
     ScreenHitboxControll s = ScreenHitboxControll();
     add(s);
 
-    ///////////////////////////
-    ///      FIXED GUI      ///
-    ///////////////////////////
+    //gui top
     pauseButtonHolder
       ..sprite = await loadSprite("pauseButtonHolder.png")
       ..priority = 100
@@ -156,14 +155,6 @@ class AsteroidEvadeGame extends FlameGame
       ..y = 0
       ..size = Vector2(_ScreenWidth, 30);
     add(notif);
-    // missileIcon
-    //   ..sprite = await loadSprite("iconMissile.png")
-    //   ..priority = 200
-    //   ..anchor = Anchor.topLeft
-    //   ..x = _ScreenWidth / 3
-    //   ..y = 35
-    //   ..size = Vector2(10, 10);
-    // add(missileIcon);
     missLed1
       ..sprite = await loadSprite("btnON.png")
       ..priority = 200
@@ -204,15 +195,10 @@ class AsteroidEvadeGame extends FlameGame
       ..y = 35
       ..size = Vector2(10, 10);
     add(missLed5);
-
-    ///////////////////////////
-    ///   TOGGLE BY EVENT   ///
-    ///////////////////////////
     add(background
       ..sprite = await loadSprite("background.jpg")
       ..size = size
       ..priority = 10);
-    //event ---------------------------------------------------------------add event make class on tap if bn lit events
     add(buttonLight
       ..sprite = await loadSprite("btnON.png")
       ..priority = 101
@@ -224,7 +210,7 @@ class AsteroidEvadeGame extends FlameGame
     PauseGameButton pauseButton =
         PauseGameButton(await loadSprite("pause.png"));
     add(pauseButton);
-
+    //define menus and add them with corrresponding priority
     MenuOptExit optExit = MenuOptExit(await loadSprite("menu1s.png"));
     MenuOptPlay optPlay = MenuOptPlay(await loadSprite("menu1s.png"));
     MenuOptRestart optRestart = MenuOptRestart(await loadSprite("menu1s.png"));
@@ -239,6 +225,8 @@ class AsteroidEvadeGame extends FlameGame
     add(optPlay);
     add(optRestart);
     add(optContinue);
+
+    //define aplication texts
     TextStyle style = TextStyle(color: BasicPalette.green.color);
     TextPaint regular = TextPaint(style: style);
     TextComponent scoreLabel = TextComponent();
@@ -301,15 +289,17 @@ class AsteroidEvadeGame extends FlameGame
     add(lblPlay);
     add(lblRestart);
     add(lblContinue);
+    //define spaceship component
     Spaceship spaceship = Spaceship(await loadSprite("Ship.png"));
-    //add(spaceship);
 
+    //initilize timers but stop them untill game is started
     meteorTimer.start();
     meteorTimer.pause();
     ScorreTicker.pause();
     DiffUp.start();
     DiffUp.pause();
-    //GAME MENU EVENTS
+
+    //player wants to play
     pressedPlay.trigger = () async {
       meteorTimer.resume();
       DiffUp.resume();
@@ -323,6 +313,7 @@ class AsteroidEvadeGame extends FlameGame
       add(spaceship);
       _GameOver = false;
     };
+    //player wants to restart game
     pressedRestart.trigger = () async {
       print("restart");
       CleanGame();
@@ -342,6 +333,7 @@ class AsteroidEvadeGame extends FlameGame
       _GamePause = false;
       scoreLabel.text = "".padLeft(10, '0');
     };
+    //playe wants to continue game
     pressedContinue.trigger = () async {
       print("Continue");
       meteorTimer.resume();
@@ -358,7 +350,7 @@ class AsteroidEvadeGame extends FlameGame
       _GamePause = false;
     };
 
-    //GAME STOP EVENTS
+    //player loses game
     gameOver.trigger = () async {
       print("Clean &&  main menu");
       meteorTimer.pause();
@@ -371,6 +363,7 @@ class AsteroidEvadeGame extends FlameGame
       lblExit.priority = 200;
       lblPlay.priority = 200;
     };
+    //player hits pause
     pauseGame.trigger = () async {
       print("pauseGame");
       meteorTimer.pause();
@@ -386,15 +379,14 @@ class AsteroidEvadeGame extends FlameGame
       lblRestart.priority = 200;
       lblContinue.priority = 200;
     };
-    exitApp.trigger = () async {
-      SystemChannels.platform.invokeMethod<void>('SystemNavigator.pop');
-    };
+    //spawn tracer large
     tracerTimer.onTick = () async {
       setSize = operations.RandomDouble(30, 60);
       Tracer tracer =
           Tracer(Sprite(images.fromCache("TraceWhite.png")), setSize);
       add(tracer);
     };
+    //spawn tracer small
     smallTracer.onTick = () async {
       TracerPoint tracer =
           TracerPoint(Sprite(images.fromCache("TraceWhite.png")));
@@ -414,6 +406,7 @@ class AsteroidEvadeGame extends FlameGame
       Score += 1;
       scoreLabel.text = Score.toString().padLeft(10, '0');
     };
+    //spawns meteor
     meteorTimer.onTick = () async {
       print("GenMeteor");
       for (var i = 0; i < 1 + difficultyMod; i++) {
@@ -425,6 +418,7 @@ class AsteroidEvadeGame extends FlameGame
         add(asteroid);
       }
     };
+    //spawns missile
     fireMissile.trigger = () async {
       Missile missile =
           Missile(await loadSprite("missile.png"), spaceship.x, spaceship.y);
@@ -438,14 +432,15 @@ class AsteroidEvadeGame extends FlameGame
   @override
   void update(double dt) {
     super.update(dt);
+    //timers reuqire umdate to work
     tracerTimer.update(dt);
     meteorTimer.update(dt);
     smallTracer.update(dt);
-
     DiffUp.update(dt);
     ScorreTicker.update(dt);
   }
 
+  //turns off the led  andd will reload in the set time
   void missileLed(bool encender) {
     Sprite s;
     if (encender) {
@@ -484,6 +479,7 @@ class AsteroidEvadeGame extends FlameGame
     }
   }
 
+  // clean obj at defeat or restart of the game
   void CleanGame() {
     for (Component item in this.children.toList()) {
       print(item.runtimeType);
@@ -494,14 +490,13 @@ class AsteroidEvadeGame extends FlameGame
           item.removeFromParent();
         }
       } catch (e) {
-        print("aaaaaaaaaaaaaaaaaaaaaa");
+        print("CANNOT CLEAN EXCEPTION!");
       }
     }
   }
 }
-//TEXT PRESSET
 
-//classes
+//UI CONTROLS
 class MenuOptExit extends SpriteComponent with Tappable {
   MenuOptExit(Sprite img) {
     this.sprite = img;
@@ -562,7 +557,7 @@ class MenuOptRestart extends SpriteComponent with Tappable {
     this.sprite = img;
     size = Vector2(700, 170);
     anchor = Anchor.centerLeft;
-    priority = 310;
+    priority = 330;
     x = 10;
     y = _ScreenHeight / 1.7;
   }
@@ -574,7 +569,7 @@ class MenuOptRestart extends SpriteComponent with Tappable {
         AudioPlayerComponent.menu();
         AudioPlayerComponent.bgmCombat1();
 
-        if (pressedRestart._running) {
+        if (pressedRestart.isRunning()) {
           pressedRestart.CallAction();
         } else {
           AudioPlayerComponent.error();
@@ -644,6 +639,7 @@ class PauseGameButton extends SpriteComponent with Tappable {
   }
 }
 
+//GAME CONTROL
 class ScreenHitboxControll extends ScreenHitbox {
   @override
   void onCollisionEnd(PositionComponent other) {
@@ -660,9 +656,56 @@ class ScreenHitboxControll extends ScreenHitbox {
   }
 }
 
-//SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP////SPACESHIP//
+//DECORATION
+class TracerPoint extends SpriteComponent with CollisionCallbacks {
+  TracerPoint(Sprite sprite) {
+    this.sprite = sprite;
+    priority = 20;
+    setAlpha(200);
+    anchor = Anchor.center;
+    size = Vector2(2, 2);
+    x = operations.RandomDouble(0, _ScreenWidth);
+    y = 30;
+  }
+  Future<void> onLoad() async {
+    add(RectangleHitbox());
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!_GamePause) {
+      this.y += dt * 20;
+    }
+  }
+}
+
+class Tracer extends SpriteComponent with CollisionCallbacks {
+  Tracer(Sprite sprite, double setSize) {
+    this.sprite = sprite;
+    priority = 20;
+    setAlpha(100);
+    anchor = Anchor.center;
+    size = Vector2(2, setSize);
+    x = operations.RandomDouble(0, _ScreenWidth);
+    y = -2 * setSize;
+  }
+  Future<void> onLoad() async {
+    add(RectangleHitbox());
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!_GamePause) {
+      this.y += dt * math.pow(this.size[1], 3) / 100;
+    }
+  }
+}
+
+//GAME SPRITES
+//#SPACESHIP
 class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
-  //Tappable
   Spaceship(Sprite img) {
     this.sprite = img;
     size = Vector2(75, 75);
@@ -732,87 +775,7 @@ class Spaceship extends SpriteComponent with CollisionCallbacks, Tappable {
   }
 }
 
-class TracerPoint extends SpriteComponent with CollisionCallbacks {
-  TracerPoint(Sprite sprite) {
-    this.sprite = sprite;
-    priority = 20;
-    setAlpha(200);
-    anchor = Anchor.center;
-    size = Vector2(2, 2);
-    x = operations.RandomDouble(0, _ScreenWidth);
-    y = 30;
-  }
-  Future<void> onLoad() async {
-    add(RectangleHitbox());
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    if (!_GamePause) {
-      this.y += dt * 20;
-    }
-  }
-}
-
-class Tracer extends SpriteComponent with CollisionCallbacks {
-  Tracer(Sprite sprite, double setSize) {
-    this.sprite = sprite;
-    priority = 20;
-    setAlpha(100);
-    anchor = Anchor.center;
-    size = Vector2(2, setSize);
-    x = operations.RandomDouble(0, _ScreenWidth);
-    y = -2 * setSize;
-  }
-  Future<void> onLoad() async {
-    add(RectangleHitbox());
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    if (!_GamePause) {
-      this.y += dt * math.pow(this.size[1], 3) / 100;
-    }
-  }
-}
-
-//ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID////ASTEROID//
-class Asteroid extends SpriteComponent with CollisionCallbacks {
-  Asteroid(Sprite sprite, double setSize) {
-    this.sprite = sprite;
-    priority = 49;
-    size = Vector2(setSize, setSize);
-    anchor = Anchor.center;
-    x = operations.RandomDouble(0 + setSize / 2, _ScreenWidth - setSize / 2);
-    y = -2 * setSize;
-    debugMode = _DebugMode;
-  }
-  Future<void> onLoad() async {
-    add(CircleHitbox(
-        radius: hitboxRedux.CalculaRadi(this.size, 0.8),
-        position: hitboxRedux.HitboxPosition(this.size, 0.7)));
-  }
-
-  @override
-  void update(double dt) {
-    super.update(dt);
-    if (!_GamePause && !_GameOver) {
-      this.y += 300 * dt / (this.size[0] / 10);
-    }
-  }
-
-  @override
-  void onCollision(Set<Vector2> points, PositionComponent other) {
-    super.onCollision(points, other);
-    if (other is Asteroid && other.size[0] < this.size[0]) {
-      //other.removeFromParent();
-    } else if (other is Asteroid) {}
-  }
-}
-
-//MISSILE////MISSILE////MISSILE////MISSILE////MISSILE////MISSILE////MISSILE////MISSILE////MISSILE////MISSILE//
+//#MISSILE
 class Missile extends SpriteComponent with CollisionCallbacks {
   Missile(Sprite sprite, double spawnPosX, double spawnPosY) {
     this.sprite = sprite;
@@ -848,29 +811,41 @@ class Missile extends SpriteComponent with CollisionCallbacks {
   }
 }
 
-//PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE////PAUSE//
-/*
-class PauseGame extends SpriteComponent with Tappable {
-  PauseGame(Sprite sprite) {
+//#ASTEROID
+class Asteroid extends SpriteComponent with CollisionCallbacks {
+  Asteroid(Sprite sprite, double setSize) {
     this.sprite = sprite;
-    priority = 150;
-    size = Vector2(100, 20);
+    priority = 49;
+    size = Vector2(setSize, setSize);
     anchor = Anchor.center;
-    x = 30;
-    y = 30;
+    x = operations.RandomDouble(0 + setSize / 2, _ScreenWidth - setSize / 2);
+    y = -2 * setSize;
+    debugMode = _DebugMode;
   }
-  @override
-  bool onTapDown(TapDownInfo info) {
-    try {
-      pauseGame.CallAction();
+  Future<void> onLoad() async {
+    add(CircleHitbox(
+        radius: hitboxRedux.CalculaRadi(this.size, 0.8),
+        position: hitboxRedux.HitboxPosition(this.size, 0.7)));
+  }
 
-      return true;
-    } catch (error) {
-      return false;
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (!_GamePause && !_GameOver) {
+      this.y += 300 * dt / (this.size[0] / 10);
     }
   }
-}*/
 
+  @override
+  void onCollision(Set<Vector2> points, PositionComponent other) {
+    super.onCollision(points, other);
+    if (other is Asteroid && other.size[0] < this.size[0]) {
+      //other.removeFromParent();
+    } else if (other is Asteroid) {}
+  }
+}
+
+//generate a stack push selected one to last position
 class MenuOpt1 extends SpriteComponent with Tappable {}
 
 class Stack<E> {
@@ -894,57 +869,5 @@ class Stack<E> {
     _list.add(value);
     _list.removeAt(0);
     return value;
-  }
-}
-
-class TriggerAcction {
-  VoidCallback? trigger;
-  bool _running;
-  TriggerAcction({this.trigger, bool autoStart = true}) : _running = autoStart;
-  void CallAction() {
-    if (_running) {
-      trigger?.call();
-    }
-  }
-
-  bool isRunning() => _running;
-  void Stop() {
-    _running = false;
-  }
-
-  void Start() {
-    _running = true;
-  }
-}
-
-class TriggerAcctionPosition {
-  Function(Vector2)? trigger;
-  bool _running;
-  TriggerAcctionPosition({this.trigger, bool autoStart = true})
-      : _running = autoStart;
-  void CallActionAt(Vector2 vector) {
-    if (_running) {
-      trigger?.call(vector);
-    }
-  }
-
-  bool isRunning() => _running;
-  void Stop() {
-    _running = false;
-  }
-
-  void Start() {
-    _running = true;
-  }
-}
-
-class hitboxRedux {
-  static double CalculaRadi(Vector2 dimm, double ratio) {
-    return dimm[0] / 2 * ratio;
-  }
-
-  static Vector2 HitboxPosition(Vector2 dimm, double ratio) {
-    double dispalce = dimm[0] / 2 - CalculaRadi(dimm, ratio);
-    return Vector2(dispalce, dispalce);
   }
 }

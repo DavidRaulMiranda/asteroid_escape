@@ -1,5 +1,6 @@
 import 'package:flame_audio/flame_audio.dart';
 
+//app audio triggers and loader
 class AudioPlayerComponent {
   static void PreloadTracks() async {
     await FlameAudio.audioCache.loadAll([
