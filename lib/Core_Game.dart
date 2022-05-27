@@ -1,7 +1,7 @@
 import 'dart:ffi';
 import 'dart:io';
 
-import 'package:asteroid_escape/audio_compo.dart';
+import 'package:asteroid_escape/lib_audio.dart';
 import 'package:async/async.dart';
 
 import 'package:asteroid_escape/operations.dart';
@@ -18,36 +18,39 @@ import 'package:flutter/services.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'dart:math' as math;
 
+//GAME VARIABLES
 bool _DebugMode = false;
 bool _GamePause = false;
 bool _GameOver = true;
-bool _Inmortal = true;
-bool _LightOn = true;
 
 double _ScreenWidth = 0;
 double _ScreenHeight = 0;
 double _AccelerometerTilt = 0;
 double _AccelerometerTiltY = 0;
 
+//SCORE
+double difficultyMod = 0;
 int distance = 0;
+int Score = 0;
+
+//MISSILES VAR
 int numMiss = 5;
 int maxNumMiss = 5;
-double difficultyMod = 0;
-int Score = 0;
 int missileReloadTime = 20;
 
-//events
-TriggerAcction exitApp = TriggerAcction();
-
+//EVENTS
+//MENU EVENTS
 TriggerAcction pressedPlay = TriggerAcction();
 TriggerAcction pressedRestart = TriggerAcction();
 TriggerAcction pressedContinue = TriggerAcction();
-
+TriggerAcction exitApp = TriggerAcction();
+//GAME EVENTS
 TriggerAcction pauseGame = TriggerAcction();
 TriggerAcction gameOver = TriggerAcction();
 TriggerAcction fireMissile = TriggerAcction();
 
-class p7_addtext extends FlameGame with HasCollisionDetection, HasTappables {
+class AsteroidEvadeGame extends FlameGame
+    with HasCollisionDetection, HasTappables {
   Timer meteorTimer = Timer(0.7, repeat: true);
   Timer tracerTimer = Timer(0.3, repeat: true);
   Timer smallTracer = Timer(0.7, repeat: true);
