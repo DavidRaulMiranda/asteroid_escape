@@ -50,9 +50,10 @@ dev_dependencies:
   flutter_launcher_icons: 
 
 flutter_icons:
-  android: "appIcon"
-  ios: false
   image_path: "assets/images/appIcon.png"
+  android: true
+  ios: false
+  
  
   
 flutter_native_splash:

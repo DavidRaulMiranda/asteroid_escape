@@ -1,7 +1,7 @@
 import 'dart:math';
-
 import 'package:flame/components.dart';
 
+//generate random numbers
 class operations {
   static int RandomIntVal(int min, int max) {
     Random random = Random();
